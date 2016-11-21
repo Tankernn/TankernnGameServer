@@ -1,22 +1,19 @@
 package eu.tankernn.game.server;
 
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 
-public class GameServerHandler extends SimpleChannelHandler {
-	
+public class GameServerHandler extends ChannelInboundHandlerAdapter {
+
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-		
+	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+		ctx.write(msg);
+		ctx.flush();
 	}
-	
+
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-		e.getCause().printStackTrace();
-		Channel ch = e.getChannel();
-		ch.close();
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable e) throws Exception {
+		e.printStackTrace();
+		ctx.close();
 	}
 }
