@@ -4,16 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import eu.tankernn.game.server.entities.player.ServerPlayer;
-import eu.tankernn.gameEngine.entities.Entity;
+import eu.tankernn.gameEngine.entities.Entity3D;
 import eu.tankernn.gameEngine.entities.Light;
 
 public class World {
-	int seed;
+	public final int seed;
 	List<Light> lights;
-	List<Entity> entities;
+	List<Entity3D> entities;
 	List<ServerPlayer> players;
 	
-	public World(List<Light> lights, List<Entity> entities) {
+	public World(int seed, List<Light> lights, List<Entity3D> entities) {
+		this.seed = seed;
 		this.lights = lights;
 		this.entities = entities;
 		this.players = new ArrayList<ServerPlayer>();

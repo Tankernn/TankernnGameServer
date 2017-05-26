@@ -1,13 +1,21 @@
 package eu.tankernn.game.server.entities.player;
 
-import eu.tankernn.gameEngine.entities.Player;
+import org.lwjgl.util.vector.Vector3f;
 
 public class ServerPlayer {
-	private Player playerEntity;
+	private final Vector3f position;
 	private String username;
 	
-	public ServerPlayer(String username, Player entity) {
+	public ServerPlayer(String username) {
 		this.username = username;
-		this.playerEntity = entity;
+		this.position = new Vector3f();
+	}
+
+	public Vector3f getPosition() {
+		return position;
+	}
+
+	public String getUsername() {
+		return username;
 	}
 }
