@@ -1,21 +1,33 @@
 package eu.tankernn.game.server.entities.player;
 
-import org.lwjgl.util.vector.Vector3f;
+import eu.tankernn.game.server.entities.ServerEntity;
+import eu.tankernn.gameEngine.entities.EntityState;
+import io.netty.channel.Channel;
 
-public class ServerPlayer {
-	private final Vector3f position;
+public class ServerPlayer extends ServerEntity {
+	
+	private final Channel channel;
 	private String username;
 	
-	public ServerPlayer(String username) {
-		this.username = username;
-		this.position = new Vector3f();
+	public ServerPlayer(Channel channel) {
+		this.state = new EntityState();
+		state.setModelId(0);
+		this.channel = channel;
 	}
-
-	public Vector3f getPosition() {
-		return position;
-	}
-
+	
 	public String getUsername() {
 		return username;
+	}
+	
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
+	public Channel getChannel() {
+		return channel;
+	}
+
+	public int getId() {
+		return state.getId();
 	}
 }

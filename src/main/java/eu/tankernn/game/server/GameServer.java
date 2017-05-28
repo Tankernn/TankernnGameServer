@@ -1,32 +1,62 @@
 package eu.tankernn.game.server;
 
-import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import eu.tankernn.gameEngine.entities.Entity3D;
+import org.lwjgl.util.vector.Vector3f;
+
 import eu.tankernn.gameEngine.entities.Light;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelGroupFuture;
+import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.util.concurrent.GlobalEventExecutor;
 
 public class GameServer {
+	private ScheduledExecutorService executor;
+
 	private int port;
 	private World world;
+	private ChannelGroup channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
 	public GameServer(int port) {
 		this.port = port;
-		this.world = new World(1337, new ArrayList<Light>(), new ArrayList<Entity3D>());
+
+		executor = Executors.newSingleThreadScheduledExecutor();
+
+		this.world = new World(1337);
+		world.getState().getLights().add(new Light(new Vector3f(1000, 1000, 0), new Vector3f(1, 1, 1)));
+		startListening();
+		executor.scheduleAtFixedRate(this::update, 0, 1000 / 16, TimeUnit.MILLISECONDS); // 64
+																							// tick
+																							// XD
 	}
 
-	public void run() throws Exception {
+	private void update() {
+		try {
+			ChannelGroupFuture f = channelGroup.flushAndWrite(world.getState()).sync();
+			if (!f.isSuccess()) {
+				f.cause().printStackTrace();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+	}
+
+	public void startListening() {
 		EventLoopGroup bossGroup = new NioEventLoopGroup();
 		EventLoopGroup workerGroup = new NioEventLoopGroup();
 		ServerBootstrap b = new ServerBootstrap();
@@ -34,19 +64,22 @@ public class GameServer {
 				.childHandler(new ChannelInitializer<SocketChannel>() {
 					@Override
 					public void initChannel(SocketChannel ch) throws Exception {
-						
+
 						ch.pipeline().addLast("objectDecoder", new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
 						ch.pipeline().addLast("objectEncoder", new ObjectEncoder());
-						ch.pipeline().addLast("timeouthandler", new ReadTimeoutHandler(30));
-						ch.pipeline().addLast(new IdleStateHandler(0, 0, 29));
+						ch.pipeline().addLast("timeouthandler", new ReadTimeoutHandler(10));
 
-						ch.pipeline().addLast(new GameServerHandler(world));
+						ch.pipeline().addLast(new GameServerHandler(channelGroup, world));
 					}
 				}).option(ChannelOption.SO_BACKLOG, 128).childOption(ChannelOption.SO_KEEPALIVE, true);
 
 		// Bind and start to accept incoming connections.
-		b.bind(port).sync();
-		
+		try {
+			b.bind(port).sync();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		System.out.println("Server started.");
 	}
 
@@ -58,7 +91,7 @@ public class GameServer {
 			port = 25566;
 		}
 		try {
-			new GameServer(port).run();
+			new GameServer(port);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

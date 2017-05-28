@@ -1,39 +1,50 @@
 package eu.tankernn.game.server;
 
-import org.lwjgl.util.vector.ReadableVector3f;
-import org.lwjgl.util.vector.Vector3f;
-
 import eu.tankernn.game.server.entities.player.ServerPlayer;
+import eu.tankernn.gameEngine.entities.EntityState;
+import eu.tankernn.gameEngine.multiplayer.LoginRequest;
+import eu.tankernn.gameEngine.multiplayer.LoginResponse;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.channel.group.ChannelGroup;
 
 public class GameServerHandler extends ChannelInboundHandlerAdapter {
 
 	private ServerPlayer player;
 	private final World world;
+	private final ChannelGroup group;
 
-	public GameServerHandler(World world) {
+	public GameServerHandler(ChannelGroup group, World world) {
+		this.group = group;
 		this.world = world;
 	}
 
 	@Override
+	public void channelActive(ChannelHandlerContext ctx) throws Exception {
+		player = new ServerPlayer(ctx.channel());
+	}
+
+	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-		if (player == null && msg instanceof String) {
-			player = new ServerPlayer((String) msg);
-			world.players.add(player);
+		if (msg instanceof LoginRequest) {
+			LoginRequest request = (LoginRequest) msg;
+			player.setUsername(request.username);
+			world.addPlayer(player);
+			group.add(ctx.channel());
 			System.out.println("Player connected with username: " + player.getUsername());
-			ctx.writeAndFlush(Integer.valueOf(world.seed));
-		} else if (msg instanceof Vector3f) {
-			player.getPosition().set((ReadableVector3f) msg);
+			ctx.writeAndFlush(new LoginResponse(true, player.getState())).sync();
+		} else if (msg instanceof EntityState) {
+			EntityState state = (EntityState) msg;
+			player.setState(state);
+		} else {
+			System.err.println("Unknown message: " + msg.toString());
 		}
 	}
 
 	@Override
-	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-		if (evt instanceof IdleStateEvent) {
-			ctx.writeAndFlush(new Object());
-		}
+	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+		world.removePlayer(player);
+		group.remove(ctx.channel());
 	}
 
 	@Override
