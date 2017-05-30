@@ -6,7 +6,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import eu.tankernn.gameEngine.entities.GameContext;
 import eu.tankernn.gameEngine.entities.Light;
+import eu.tankernn.gameEngine.loader.models.AABB;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -30,6 +32,8 @@ public class GameServer {
 	private World world;
 	private ChannelGroup channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
+	private long lastTickTimeStampNano;
+
 	public GameServer(int port) {
 		this.port = port;
 
@@ -45,6 +49,29 @@ public class GameServer {
 
 	private void update() {
 		try {
+			double tickLengthSeconds = (System.nanoTime() - lastTickTimeStampNano) / 1000000000.0;
+			lastTickTimeStampNano = System.nanoTime();
+			GameContext ctx = new GameContext(false, (float) tickLengthSeconds, world.getState().getEntities()) {
+
+				@Override
+				public float getTerrainHeight(float x, float z) {
+					// TODO Auto-generated method stub
+					return 1;
+				}
+
+				@Override
+				public float getHeight(int entityId) {
+					// TODO Auto-generated method stub
+					return 1;
+				}
+
+				@Override
+				public AABB getBoundingBox(int entityId) {
+					// TODO Auto-generated method stub
+					return new AABB(new Vector3f(0, 0, 0), new Vector3f(1, 1, 1));
+				}
+			};
+			world.update(ctx);
 			ChannelGroupFuture f = channelGroup.flushAndWrite(world.getState()).sync();
 			if (!f.isSuccess()) {
 				f.cause().printStackTrace();
@@ -53,6 +80,7 @@ public class GameServer {
 			e.printStackTrace();
 		} catch (Throwable t) {
 			t.printStackTrace();
+			throw t;
 		}
 	}
 

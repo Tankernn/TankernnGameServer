@@ -6,26 +6,32 @@ import java.util.stream.Collectors;
 
 import eu.tankernn.game.server.entities.ServerEntity;
 import eu.tankernn.game.server.entities.player.ServerPlayer;
-import eu.tankernn.gameEngine.entities.EntityState;
+import eu.tankernn.gameEngine.entities.GameContext;
+import eu.tankernn.gameEngine.entities.ILight;
 import eu.tankernn.gameEngine.multiplayer.WorldState;
 
 public class World {
-	private WorldState state;
+	private final int seed;
+	private final List<ILight> lights = new ArrayList<>();
 	private final List<ServerEntity> entities = new ArrayList<>();
 	private final List<ServerPlayer> players = new ArrayList<>();
 	
 	public World(int seed) {
-		this.state = new WorldState(seed);
+		this.seed = seed;
 	}
 	
-	public void update() {
-		state.getEntities().stream().forEach(EntityState::update);
+	public void update(GameContext ctx) {
+		entities.stream().forEach(e -> e.update(ctx));
 	}
 	
 	public WorldState getState() {
-		return new WorldState(state.getSeed(), state.getLights(), entities.stream().map(ServerEntity::getState).collect(Collectors.toList()));
+		return new WorldState(seed, lights, entities.stream().map(ServerEntity::getState).collect(Collectors.toList()));
 	}
-
+	
+	public List<ServerEntity> getEntities() {
+		return entities;
+	}
+	
 	public List<ServerPlayer> getPlayers() {
 		return players;
 	}
