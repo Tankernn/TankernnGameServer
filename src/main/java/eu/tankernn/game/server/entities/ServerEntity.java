@@ -6,6 +6,10 @@ import eu.tankernn.gameEngine.entities.GameContext;
 public class ServerEntity {
 	protected EntityState state;
 
+	public ServerEntity(EntityState state) {
+		this.state = state;
+	}
+
 	public EntityState getState() {
 		return state;
 	}
@@ -13,7 +17,6 @@ public class ServerEntity {
 	public void setState(EntityState state) {
 		//this.state = state;
 		this.state.getVelocity().set(state.getVelocity());
-		this.state.getPosition().set(state.getPosition());
 		this.state.getRotation().set(state.getRotation());
 		this.state.setBehaviors(state.getBehaviors());
 	}

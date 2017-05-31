@@ -35,7 +35,13 @@ public class GameServerHandler extends ChannelInboundHandlerAdapter {
 			ctx.writeAndFlush(new LoginResponse(true, player.getState())).sync();
 		} else if (msg instanceof EntityState) {
 			EntityState state = (EntityState) msg;
-			player.setState(state);
+			if (state.getId() == player.getId())
+				player.setState(state);
+			else {
+				// Spawn new entity
+				state.resetId();
+				world.setEntityState(state);
+			}
 		} else {
 			System.err.println("Unknown message: " + msg.toString());
 		}

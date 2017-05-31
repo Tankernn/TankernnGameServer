@@ -10,7 +10,7 @@ public class ServerPlayer extends ServerEntity {
 	private String username;
 	
 	public ServerPlayer(Channel channel) {
-		this.state = new EntityState();
+		super(new EntityState());
 		state.setModelId(0);
 		this.channel = channel;
 	}

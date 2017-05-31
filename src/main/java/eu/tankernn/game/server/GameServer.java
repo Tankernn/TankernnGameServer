@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import eu.tankernn.gameEngine.entities.EntityState;
 import eu.tankernn.gameEngine.entities.GameContext;
 import eu.tankernn.gameEngine.entities.Light;
 import eu.tankernn.gameEngine.loader.models.AABB;
@@ -14,7 +15,6 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -40,7 +40,7 @@ public class GameServer {
 		executor = Executors.newSingleThreadScheduledExecutor();
 
 		this.world = new World(1337);
-		world.getState().getLights().add(new Light(new Vector3f(1000, 1000, 0), new Vector3f(1, 1, 1)));
+		world.addLight(new Light(new Vector3f(1000, 1000, 0), new Vector3f(1, 1, 1)));
 		startListening();
 		executor.scheduleAtFixedRate(this::update, 0, 1000 / 16, TimeUnit.MILLISECONDS); // 64
 																							// tick
@@ -55,8 +55,7 @@ public class GameServer {
 
 				@Override
 				public float getTerrainHeight(float x, float z) {
-					// TODO Auto-generated method stub
-					return 1;
+					return world.getTerrainHeight(x, z);
 				}
 
 				@Override
@@ -68,14 +67,17 @@ public class GameServer {
 				@Override
 				public AABB getBoundingBox(int entityId) {
 					// TODO Auto-generated method stub
-					return new AABB(new Vector3f(0, 0, 0), new Vector3f(1, 1, 1));
+					return new AABB(new Vector3f(0, 0, 0), new Vector3f(1, 1, 1)).updatePosition(world.getEntities().get(entityId).getState().getPosition());
+				}
+
+				@Override
+				public EntityState getEntity(int id) {
+					System.out.println("Request: " + id + ". Available: " + world.getEntities().values().toString());
+					return world.getEntities().get(id).getState();
 				}
 			};
 			world.update(ctx);
-			ChannelGroupFuture f = channelGroup.flushAndWrite(world.getState()).sync();
-			if (!f.isSuccess()) {
-				f.cause().printStackTrace();
-			}
+			channelGroup.flushAndWrite(world.getState()).sync();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		} catch (Throwable t) {
